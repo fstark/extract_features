@@ -1,0 +1,8 @@
+requirements-gitignore.txt
+venv
+output
+*.mp4
+Playground.ipynb
+bluenoise.png
+.DS_Store
+*.zip
