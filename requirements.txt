@@ -1,7 +1,4 @@
-pillow
 torch
-jupyter
 transformers
 tqdm
 opencv-python
-matplotlib

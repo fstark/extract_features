@@ -24,6 +24,9 @@ def get_frames(video_path):
         if not ret:
             break
         yield frame
+        ret, frame = cap.read() # Read every other frame
+        if not ret:
+            break
     cap.release()
 
 
@@ -135,7 +138,12 @@ def save_all(info_iterable, output_dir):
     for i, info in enumerate(zipdict(info_iterable)):
         # Save the frames to the output directory
         for key, frame in info.items():
-            cv2.imwrite(f"{output_dir}/{i:04d}_{key}.png", frame)
+            # Resize the frame to 1120x832, adding black bars if necessary
+            resized_frame = np.zeros((832, 1120), dtype=np.uint8)
+            start_x = (1120 - frame.shape[1]) // 2
+            start_y = (832 - frame.shape[0]) // 2
+            resized_frame[start_y:start_y+frame.shape[0], start_x:start_x+frame.shape[1]] = frame
+            cv2.imwrite(f"{output_dir}/{i:04d}_{key}.png", resized_frame)
 
 
 def parse_target_size(value):
@@ -195,11 +203,11 @@ def main():
 
     check_outputdir(output_dir)
 
-    device = "mps"
+    device = "cuda"
     image_processor, model = get_models(model_name, device)
-    segment_processor = AutoImageProcessor.from_pretrained("nvidia/segformer-b2-finetuned-ade-512-512")
-    segment_model = CustomSegformerModel("nvidia/segformer-b2-finetuned-ade-512-512")
-    segment_model = segment_model.to("cpu")
+    # segment_processor = AutoImageProcessor.from_pretrained("nvidia/segformer-b2-finetuned-ade-512-512")
+    # segment_model = CustomSegformerModel("nvidia/segformer-b2-finetuned-ade-512-512")
+    # segment_model = segment_model.to("cpu")
 
     batch_size = 20
 
@@ -211,8 +219,8 @@ def main():
 
     predicted_depth = process_batches(to_depth, image_processor, model, device, batch_size)
     norm_depth = normalize_depth(predicted_depth)
-    predicted_segmentation = process_batches(to_segmentation, segment_processor, segment_model, "cpu", batch_size)
-    norm_segmentation = normalize_depth(predicted_segmentation)
+    # predicted_segmentation = process_batches(to_segmentation, segment_processor, segment_model, "cpu", batch_size)
+    # norm_segmentation = normalize_depth(predicted_segmentation)
     frames_gray = to_grayscale(to_gray)
     info = {'depth': norm_depth, 'frame': frames_gray}
     save_all(info, output_dir)
